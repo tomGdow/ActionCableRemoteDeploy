@@ -1,7 +1,7 @@
 ### Action Cable Demo (Remote Deploy)
 
 An adaptation of the [tutorial](https://www.youtube.com/watch?v=n0WUjGkDFS0) *Rails 5: Action Cable Demo* by *David Heinemeier Hansson*,  
-[deployed](dhhpgaction.tomgdow.com) remotely with PostgreSQL as database
+[deployed](dhhaction.tomgdow.com) remotely with PostgreSQL as database
 
 For a version of this tutorial with local deployment,  
 see https://github.com/tomGdow/ActionCable_dhh_tutorial 
