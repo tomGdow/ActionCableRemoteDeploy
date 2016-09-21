@@ -114,7 +114,7 @@ Transfer all files to remove site, then
     
 > /etc/apache2/sites-available
 
-    touch acdhh.conf  
+    touch acdhhpg.conf  
 
 set up as  follows:
 
@@ -123,7 +123,7 @@ set up as  follows:
       ServerAdmin webmaster@localhost
       ServerName  <site-url> 
       ServerAlias <site-url-alias>
-      DocumentRoot /var/www/html/dhhpgaction/public
+      DocumentRoot /var/www/html/acdhhpg/public
       PassengerRuby /home/username/.rvm/gems/ruby-2.3.1/wrappers/ruby
 
       ProxyPass / http://localhost:4000/
@@ -134,6 +134,7 @@ set up as  follows:
         Order deny,allow
         Allow from all
       </Proxy>
+
       <Directory /var/www/html/acdhhpg/public>
         AllowOverride all 
         Options -MultiViews
@@ -165,7 +166,8 @@ http://dhhaction.tomgdow.com
 
 ### Notes
 
-[Deployed](http://dhhaction.tomgdow.com) on [Digital Ocean](https://www.digitalocean.com/) with Puma as stand-alone server behind a reverse proxy on an Apache/Phusion Passenger server (see [here](https://www.phusionpassenger.com/library/deploy/standalone/reverse_proxy.html))   
+[Deployed](http://dhhaction.tomgdow.com) on [Digital Ocean](https://www.digitalocean.com/) with Puma as stand-alone server behind a reverse proxy on an  
+ Apache/Phusion Passenger server (see [here](https://www.phusionpassenger.com/library/deploy/standalone/reverse_proxy.html))   
 
 **PostgreSQL**
 
