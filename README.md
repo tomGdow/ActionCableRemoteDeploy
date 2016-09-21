@@ -191,3 +191,7 @@ For example:
 Or, include the following in .bashrc  
 
     export POSTGRES_PASSWORD='my_postgres_password'
+
+**To Do**
+
+Add link to 'okpsql' script
