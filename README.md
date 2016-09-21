@@ -1,216 +1,191 @@
-### Action Cable Demo (David Heinemeier Hansson tutorial)
+### Action Cable Demo (Remote Deploy)
 
-The tutorial (*Rails 5: Action Cable demo* by *David Heinemeier Hansson*) is available at https://www.youtube.com/watch?v=n0WUjGkDFS0  
+An adaptation of the [tutorial](https://www.youtube.com/watch?v=n0WUjGkDFS0) *Rails 5: Action Cable Demo* by *David Heinemeier Hansson*,  
+[deployed](dhhpgaction.tomgdow.com) remotely with PostgreSQL as database
 
-### Method
+For a version of this tutorial with local deployment,  
+see https://github.com/tomGdow/ActionCable_dhh_tutorial 
 
-Developed locally from the above [tutorial](https://www.youtube.com/watch?v=n0WUjGkDFS0) on a vagrant virtual machine with Ubuntu/trusty64,
+### Method 
+
+**1. Local Development**
+
+Developed locally on a virtual machine running Xubuntu 16.04,  
 Rails 5.0.0.1 and  Ruby 2.3.1, as follows: 
 
-    rails new campfire
-    cd campfire
+    okpsql     # script to check if PostgreSQL is installed properly.  OK to skip
+
+&hellip;
+
+    rails new acdhhpg -d postgresql
+    cd acdhhpg
+
+> /Gemfile  
+
+uncomment   
+
+    gem 'redis'  
+
+add to development group 
+
+    gem 'pry-rails'
+
+&hellip;  
+
+
+> config/database.yml
+
+set up as follows:
+
+    default: &default
+      adapter: postgresql
+      encoding: unicode
+      pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+    development:
+      <<: *default
+      database: acdhhpg_development
+      username: <username>
+      password: <%= ENV['POSTGRES_PASSWORD'] %>
+      host: localhost
+      port: 5432
+
+    test:
+      <<: *default
+      database: acdhhpg_test
+      username: <username> 
+      password: <%= ENV['POSTGRES_PASSWORD'] %>
+      host: localhost
+      port: 5432
+
+    production:
+      <<: *default
+      database: acdhhpg_production
+      username: <username>
+      password: <%= ENV['POSTGRES_PASSWORD'] %>
+
+&hellip;  
+
     bundle install
+    rake db:create:all
+
+&hellip;  
+
     rails g controller rooms show
+
+**Follow the method described in:**  
+
+ https://github.com/tomGdow/ActionCable_dhh_tutorial
+
+**from and including this step:**  
 
 > /config/routes.rb
     
     root to: 'rooms#show'
 
-&hellip;   
- 
-    rails s -b 0.0.0.0
-    localhost:3000 # browser
-
-&hellip;
-    
-    rails g model message content:text
-    rails db:migrate
-
-> /app/controllers/rooms_controller.rb 
-
-    def show
-      @messages = Message.all
-     end
-
-create partial  
-
-    cd app/views/
-    mkdir messages && cd $_
-    touch _message.html.erb
-
-add  
-
-    <div>
-       <p><%= message.content %></p>
-    </div>
-
-> app/views/rooms/show.html.erb  
-
-Delete all and add  
-
-    <h1> Chat Room</h1>
-    <div id="messages">
-      <%= render @messages %>
-    </div>
-
-&hellip; 
-    
-    rails c
-    Message.create! content: "hello world!"
-    exit
-
-&hellip; 
- 
-    rails s -b 0.0.0.0  
-    localhost:3000 # browser
-
-Generate channel  
-
-    rails g channel room speak  
-
-> /config/routes.rb
-
-    mount ActionCable.server => '/cable'
-
-> app/assets/javascripts/cable.js  
-
-Check that the following is uncommented 
-
-    (function() {
-       this.App || (this.App = {});    
-       App.cable = ActionCable.createConsumer();
-    }).call(this);
-
-> app/assets/javascripts/channels/room.coffee
-
-    speak: (message) -> 
-      @perform 'speak', message: message
-
-> app/channels/room_channel.rb
-
-    def subscribed
-      stream_from "room_channel"
-    end
-
-    def speak(data)
-      ActionCable.server.broadcast 'room_channel', message: data['message']
-    end
-
-> app/assets/javascripts/channels/room.coffee 
-
-    received: (data) -> 
-      alert data['message']
-
-!! restart server  
-Open app in two separate browsers  
-In (Chrome) browser console: 
-
-    App.room.speak('Hello World')
-
-Both browsers get message instantaneously
-
-&hellip;  
-
-> app/views/rooms/show.html.erb  
-
-add the following: 
-
-    <form>
-      <label>Say something </label> <br>
-      <input type ="text" data-behavior="room_speaker">
-    </form>
-
-> app/assets/javascripts/channels/room.coffee  
-
-add
-
-    $(document).on 'keypress', '[data-behavior~=room_speaker]', (event) ->
-      if event.keyCode is 13 # return = send
-        App.room.speak event.target.value
-        event.target.value = ''
-        event.preventDefault()
-
-&hellip;    
-
-    rails s -b 0.0.0.0
-    localhost:3000
-
-Should get alert box as before, but now from input box
-
-Now want to 'talk' to database
-
-> app/channels/room_channel.rb  
-
-Change 'def/speak' to the following: 
- 
-    def speak(data)
-      Message.create! content: data['message']
-    end
-
-> /app/models/message.rb
-
-    after_create_commit { MessageBroadcastJob.perform_later self }
-
-&hellip; 
-
-    rails g job MessageBroadcast
-
-> app/jobs/message_broadcast_job.rb
-
-    queue_as :default
-
-    def perform(message)
-      ActionCable.server.broadcast 'room_channel', message: render_message(message)
-    end
-
-    private
-      def render_message(message)
-        ApplicationController.renderer.render(partial: 'messages/message', locals: {message: message})
-      end
+**up to and including this step** 
 
 > app/assets/javascripts/channels/room.coffee
 
     received: (data) -> 
       $('#messages').append data['message']
 
-### Deployment
+**2. Prepare for Remote Deployment**
 
-[Deployed](http://dhhaction.tomgdow.com) on [Digital Ocean](https://www.digitalocean.com/) with Puma as stand-alone server behind an Apache reverse proxy (see [here](https://www.phusionpassenger.com/library/deploy/standalone/reverse_proxy.html))
+>  /app/views/layouts/application.html.erb
+
+add the following, before the 'javascript_include_tag'
+
+    <%= action_cable_meta_tag %>
+ 
+> config/environments/development.rb
+
+add the following
+
+    config.action_cable.url = "ws://your-site-url:4000/cable"
+    config.action_cable.allowed_request_origins = ['http://your-site-url']
+
+**3 Remote Server**
+
+Transfer all files to remove site, then
+
+    sudo cp -R acdhhpg /var/www/html
+    sudo chown -R \$USER:\$USER /var/www/html/acdhhpg/
+    
+> /etc/apache2/sites-available
+
+    touch acdhh.conf  
+
+set up as  follows:
+
+    <VirtualHost *:80>
+      
+      ServerAdmin webmaster@localhost
+      ServerName  <site-url> 
+      ServerAlias <site-url-alias>
+      DocumentRoot /var/www/html/dhhpgaction/public
+      PassengerRuby /home/username/.rvm/gems/ruby-2.3.1/wrappers/ruby
+
+      ProxyPass / http://localhost:4000/
+      ProxyPassReverse / localhost:4000/
+      ProxyPreserveHost on 
+
+      <Proxy *>
+        Order deny,allow
+        Allow from all
+      </Proxy>
+      <Directory /var/www/html/acdhhpg/public>
+        AllowOverride all 
+        Options -MultiViews
+        require all granted
+      </Directory>
+
+      ErrorLog ${APACHE_LOG_DIR}/error.log
+      CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+      </VirtualHost>
+
+&hellip;  
+
+    a2ensite acdhhpg
+    sudo service apache2 restart
+
+> /var/www/html/acdhhpg  
+ 
+    bundle install
+    rake db:create:all
+    rails db:migrate
+
+    rails s -d -p 4000 -b 0.0.0.0
+
+### Deployed Site
+
 
 http://dhhaction.tomgdow.com
 
 ### Notes
 
-**To use port 4000 instead of port 3000**
-> config/environments/development.rb  
+[Deployed](http://dhhaction.tomgdow.com) on [Digital Ocean](https://www.digitalocean.com/) with Puma as stand-alone server behind a reverse proxy on an Apache/Phusion Passenger server (see [here](https://www.phusionpassenger.com/library/deploy/standalone/reverse_proxy.html))   
 
-add the following line:
+**PostgreSQL**
 
-    config.action_cable.allowed_request_origins = ['http://localhost:4000'] 
-  
-The following will now work:  
+The method requires that the PostgreSQL username is the 
+same  as the current unix/Ununtu login name  
 
-    rails s -p 4000 -b 0.0.0.0
+ For example:  
 
-**To include caching**
-> app/views/messages/_message.html.erb  
+    sudo -u postgres createuser -s <unix_ubuntu_username>
+    sudo -u postgres psql
+    \password <unix_ubuntu_username>  
 
-change to the following:
+**ENV Variable**
 
-    <% cache message do %>
-    <div class="message">
-       <p><%= message.content %></p>
-    </div>
-    <% end %>
+Set an ENV variable, here called POSTGRES_PASSWORD, equal to the PostgreSQL password  
+For example:
 
-**Comment**  
+    POSTGRES_PASSWORD='my_postgres_password'
+    export POSTGRES_PASSWORD'  
 
-The following piece of code
+Or, include the following in .bashrc  
 
-    <%= action_cable_meta_tag %>
-
-is not present in:
-
-> app/views/layouts/application.html.erb
-
-Perhaps it should be included?
+    export POSTGRES_PASSWORD='my_postgres_password'
